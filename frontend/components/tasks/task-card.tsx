@@ -14,9 +14,10 @@ const PRIORITY_COLOR: Record<Task['priority'], string> = {
 
 interface TaskCardProps {
   task: Task;
+  onClick?: () => void;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
+export function TaskCard({ task, onClick }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -33,6 +34,7 @@ export function TaskCard({ task }: TaskCardProps) {
       style={style}
       {...attributes}
       {...listeners}
+      onClick={onClick}
       className="cursor-grab rounded-lg border border-atlas-panel-border bg-atlas-panel px-3 py-2.5 active:cursor-grabbing"
     >
       <p className="font-mono text-[10px] text-muted-foreground">#{task.number}</p>

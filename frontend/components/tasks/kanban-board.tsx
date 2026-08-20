@@ -13,6 +13,7 @@ import {
 } from '@dnd-kit/core';
 import { KanbanColumn } from './kanban-column';
 import { TaskCard } from './task-card';
+import { TaskDetailModal } from './task-detail-modal';
 import { useTasks, useMoveTask, type Task } from '@/hooks/use-tasks';
 
 const COLUMNS: { status: Task['status']; title: string; accentColor: string }[] = [
@@ -32,14 +33,17 @@ export function KanbanBoard({ orgId, projectId }: KanbanBoardProps) {
   const { data: tasks, isLoading } = useTasks(orgId, projectId);
   const moveTask = useMoveTask(orgId, projectId);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [dragMoved, setDragMoved] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 }, // avoids accidental drags on simple clicks
+      activationConstraint: { distance: 8 },
     }),
   );
 
   function handleDragStart(event: DragStartEvent) {
+    setDragMoved(false);
     const task = tasks?.find((t) => t.id === event.active.id);
     setActiveTask(task ?? null);
   }
@@ -52,8 +56,6 @@ export function KanbanBoard({ orgId, projectId }: KanbanBoardProps) {
     const activeTaskData = tasks.find((t) => t.id === active.id);
     if (!activeTaskData) return;
 
-    // `over.id` is either a column status (dropped on empty space) or
-    // another task's id (dropped directly on a card) - resolve to a status either way.
     const overIsColumn = COLUMNS.some((c) => c.status === over.id);
     const targetStatus = overIsColumn
       ? (over.id as Task['status'])
@@ -67,9 +69,10 @@ export function KanbanBoard({ orgId, projectId }: KanbanBoardProps) {
       : columnTasks.findIndex((t) => t.id === over.id);
 
     if (targetStatus === activeTaskData.status && targetPosition === activeTaskData.position) {
-      return; // dropped back in the same spot, nothing to do
+      return;
     }
 
+    setDragMoved(true);
     moveTask.mutate({
       taskId: activeTaskData.id,
       status: targetStatus,
@@ -77,30 +80,49 @@ export function KanbanBoard({ orgId, projectId }: KanbanBoardProps) {
     });
   }
 
+  function handleCardClick(taskId: string) {
+    if (!dragMoved) {
+      setSelectedTaskId(taskId);
+    }
+    setDragMoved(false);
+  }
+
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading tasks...</p>;
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        {COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col.status}
-            status={col.status}
-            title={col.title}
-            accentColor={col.accentColor}
-            tasks={(tasks ?? []).filter((t) => t.status === col.status)}
-          />
-        ))}
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          {COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.status}
+              status={col.status}
+              title={col.title}
+              accentColor={col.accentColor}
+              tasks={(tasks ?? []).filter((t) => t.status === col.status)}
+              onCardClick={handleCardClick}
+            />
+          ))}
+        </div>
 
-      <DragOverlay>{activeTask ? <TaskCard task={activeTask} /> : null}</DragOverlay>
-    </DndContext>
+        <DragOverlay>{activeTask ? <TaskCard task={activeTask} /> : null}</DragOverlay>
+      </DndContext>
+
+      {selectedTaskId && (
+        <TaskDetailModal
+          orgId={orgId}
+          projectId={projectId}
+          taskId={selectedTaskId}
+          onClose={() => setSelectedTaskId(null)}
+        />
+      )}
+    </>
   );
 }
