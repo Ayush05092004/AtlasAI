@@ -142,7 +142,13 @@ export class TasksService {
     projectId: string,
     taskId: string,
   ) {
-    await this.findOne(userId, organizationId, projectId, taskId);
+    // Task deletion is restricted the same way project deletion is - any
+    // member can create/edit tasks, but only owners/admins can delete them.
+    // The task's own creator is also allowed to delete their own task.
+    const task = await this.findOne(userId, organizationId, projectId, taskId);
+    if (task.creatorId !== userId) {
+      await this.orgService.assertCanManage(userId, organizationId);
+    }
     await this.prisma.task.delete({ where: { id: taskId } });
     return { success: true };
   }

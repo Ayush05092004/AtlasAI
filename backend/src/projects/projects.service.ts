@@ -69,6 +69,9 @@ export class ProjectsService {
   }
 
   async remove(userId: string, organizationId: string, projectId: string) {
+    // Deleting a project is destructive (cascades to every task and comment
+    // inside it), so it's restricted to organization owners and admins.
+    await this.orgService.assertCanManage(userId, organizationId);
     await this.findOne(userId, organizationId, projectId);
     await this.prisma.project.delete({ where: { id: projectId } });
     return { success: true };
