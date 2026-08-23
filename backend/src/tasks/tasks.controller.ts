@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto, MoveTaskDto } from './dto/task.dto';
+import { CreateCommentDto } from './dto/comment.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('organizations/:organizationId/projects/:projectId/tasks')
@@ -104,6 +105,55 @@ export class TasksController {
       organizationId,
       projectId,
       taskId,
+    );
+  }
+
+  @Get(':taskId/comments')
+  getComments(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.getComments(
+      user.userId,
+      organizationId,
+      projectId,
+      taskId,
+    );
+  }
+
+  @Post(':taskId/comments')
+  addComment(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @Body() dto: CreateCommentDto,
+  ) {
+    return this.tasksService.addComment(
+      user.userId,
+      organizationId,
+      projectId,
+      taskId,
+      dto,
+    );
+  }
+
+  @Delete(':taskId/comments/:commentId')
+  deleteComment(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+    @Param('commentId') commentId: string,
+  ) {
+    return this.tasksService.deleteComment(
+      user.userId,
+      organizationId,
+      projectId,
+      taskId,
+      commentId,
     );
   }
 }

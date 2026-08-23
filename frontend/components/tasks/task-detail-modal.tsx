@@ -6,6 +6,7 @@ import { useTask, useUpdateTask, useDeleteTask, type Task } from '@/hooks/use-ta
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CommentThread } from './comment-thread';
 
 const STATUS_OPTIONS: Task['status'][] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 const PRIORITY_OPTIONS: Task['priority'][] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
@@ -25,16 +26,12 @@ interface TaskDetailModalProps {
   onClose: () => void;
 }
 
-// Split into an outer wrapper (handles loading) and an inner form (only
-// mounted once the task data exists) - this avoids needing an effect to
-// sync fetched data into local state; the form simply initializes its
-// state from props on first render.
 export function TaskDetailModal({ orgId, projectId, taskId, onClose }: TaskDetailModalProps) {
   const { data: task, isLoading } = useTask(orgId, projectId, taskId);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-xl border border-atlas-panel-border bg-atlas-panel p-6">
+      <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-atlas-panel-border bg-atlas-panel p-6">
         {isLoading || !task ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : (
@@ -149,6 +146,10 @@ function TaskDetailForm({ orgId, projectId, task, onClose }: TaskDetailFormProps
             </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-4">
+        <CommentThread orgId={orgId} projectId={projectId} taskId={task.id} />
       </div>
 
       {confirmDelete ? (

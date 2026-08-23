@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { CreateTaskDto, UpdateTaskDto, MoveTaskDto } from './dto/task.dto';
+import { CreateCommentDto } from './dto/comment.dto';
 
 const SAFE_USER_SELECT = {
   id: true,
@@ -139,6 +144,57 @@ export class TasksService {
   ) {
     await this.findOne(userId, organizationId, projectId, taskId);
     await this.prisma.task.delete({ where: { id: taskId } });
+    return { success: true };
+  }
+
+  async getComments(
+    userId: string,
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+  ) {
+    await this.findOne(userId, organizationId, projectId, taskId);
+    return this.prisma.comment.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'asc' },
+      include: { author: { select: SAFE_USER_SELECT } },
+    });
+  }
+
+  async addComment(
+    userId: string,
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+    dto: CreateCommentDto,
+  ) {
+    await this.findOne(userId, organizationId, projectId, taskId);
+    return this.prisma.comment.create({
+      data: {
+        body: dto.body,
+        taskId,
+        authorId: userId,
+      },
+      include: { author: { select: SAFE_USER_SELECT } },
+    });
+  }
+
+  async deleteComment(
+    userId: string,
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+    commentId: string,
+  ) {
+    await this.findOne(userId, organizationId, projectId, taskId);
+    const comment = await this.prisma.comment.findFirst({
+      where: { id: commentId, taskId },
+    });
+    if (!comment) throw new NotFoundException('Comment not found');
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException('You can only delete your own comments');
+    }
+    await this.prisma.comment.delete({ where: { id: commentId } });
     return { success: true };
   }
 }
