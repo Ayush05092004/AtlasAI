@@ -15,6 +15,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
+import { NotificationBell } from './notification-bell';
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -42,16 +43,19 @@ export function Sidebar() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex h-16 items-center gap-2 border-b border-atlas-panel-border px-5"
+        className="flex h-16 items-center justify-between gap-2 border-b border-atlas-panel-border px-4"
       >
-        <motion.div
-          whileHover={{ scale: 1.08, rotate: -4 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-atlas-violet to-atlas-cyan"
-        >
-          <span className="font-display text-xs font-bold text-atlas-ink">A</span>
-        </motion.div>
-        <span className="font-display text-sm font-semibold tracking-tight">AtlasAI</span>
+        <div className="flex items-center gap-2">
+          <motion.div
+            whileHover={{ scale: 1.08, rotate: -4 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            className="flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-atlas-violet to-atlas-cyan"
+          >
+            <span className="font-display text-xs font-bold text-atlas-ink">A</span>
+          </motion.div>
+          <span className="font-display text-sm font-semibold tracking-tight">AtlasAI</span>
+        </div>
+        <NotificationBell />
       </motion.div>
 
       <LayoutGroup>
