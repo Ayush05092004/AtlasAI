@@ -9,6 +9,7 @@ import { UsersController } from './users/users.controller';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { TasksModule } from './tasks/tasks.module';
     OrganizationsModule,
     ProjectsModule,
     TasksModule,
+    NotificationsModule,
   ],
   controllers: [AppController, UsersController],
   providers: [

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateTaskDto, UpdateTaskDto, MoveTaskDto } from './dto/task.dto';
 import { CreateCommentDto } from './dto/comment.dto';
 
@@ -21,6 +22,7 @@ export class TasksService {
   constructor(
     private prisma: PrismaService,
     private orgService: OrganizationsService,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async assertProjectAccess(
@@ -49,7 +51,7 @@ export class TasksService {
       data: { taskCounter: { increment: 1 } },
     });
 
-    return this.prisma.task.create({
+    const task = await this.prisma.task.create({
       data: {
         ...dto,
         projectId,
@@ -61,6 +63,18 @@ export class TasksService {
         creator: { select: SAFE_USER_SELECT },
       },
     });
+
+    // Notify the assignee if someone else assigned this task to them.
+    if (task.assigneeId && task.assigneeId !== userId) {
+      await this.notificationsService.create(
+        task.assigneeId,
+        'TASK_ASSIGNED',
+        `You were assigned to "${task.title}"`,
+        `${project.name} · #${task.number}`,
+      );
+    }
+
+    return task;
   }
 
   async findAllForProject(
@@ -101,12 +115,34 @@ export class TasksService {
     taskId: string,
     dto: UpdateTaskDto,
   ) {
-    await this.findOne(userId, organizationId, projectId, taskId);
-    return this.prisma.task.update({
+    const existing = await this.findOne(
+      userId,
+      organizationId,
+      projectId,
+      taskId,
+    );
+
+    const updated = await this.prisma.task.update({
       where: { id: taskId },
       data: dto,
       include: { assignee: { select: SAFE_USER_SELECT } },
     });
+
+    // Notify newly-assigned person, if the assignee actually changed.
+    if (
+      dto.assigneeId &&
+      dto.assigneeId !== existing.assigneeId &&
+      dto.assigneeId !== userId
+    ) {
+      await this.notificationsService.create(
+        dto.assigneeId,
+        'TASK_ASSIGNED',
+        `You were assigned to "${updated.title}"`,
+        `#${updated.number}`,
+      );
+    }
+
+    return updated;
   }
 
   async move(
@@ -142,9 +178,6 @@ export class TasksService {
     projectId: string,
     taskId: string,
   ) {
-    // Task deletion is restricted the same way project deletion is - any
-    // member can create/edit tasks, but only owners/admins can delete them.
-    // The task's own creator is also allowed to delete their own task.
     const task = await this.findOne(userId, organizationId, projectId, taskId);
     if (task.creatorId !== userId) {
       await this.orgService.assertCanManage(userId, organizationId);
@@ -174,8 +207,9 @@ export class TasksService {
     taskId: string,
     dto: CreateCommentDto,
   ) {
-    await this.findOne(userId, organizationId, projectId, taskId);
-    return this.prisma.comment.create({
+    const task = await this.findOne(userId, organizationId, projectId, taskId);
+
+    const comment = await this.prisma.comment.create({
       data: {
         body: dto.body,
         taskId,
@@ -183,6 +217,25 @@ export class TasksService {
       },
       include: { author: { select: SAFE_USER_SELECT } },
     });
+
+    // Notify the task's creator and assignee (if different from the commenter).
+    const notifyIds = new Set<string>();
+    if (task.creatorId !== userId) notifyIds.add(task.creatorId);
+    if (task.assigneeId && task.assigneeId !== userId)
+      notifyIds.add(task.assigneeId);
+
+    await Promise.all(
+      Array.from(notifyIds).map((recipientId) =>
+        this.notificationsService.create(
+          recipientId,
+          'TASK_COMMENTED',
+          `${comment.author.firstName} commented on "${task.title}"`,
+          dto.body.slice(0, 100),
+        ),
+      ),
+    );
+
+    return comment;
   }
 
   async deleteComment(
