@@ -38,6 +38,25 @@ export class TasksService {
     return project;
   }
 
+  private logActivity(
+    projectId: string,
+    userId: string,
+    action: string,
+    targetId: string,
+    metadata?: Record<string, unknown>,
+  ) {
+    return this.prisma.activityLog.create({
+      data: {
+        projectId,
+        userId,
+        action,
+        targetType: 'Task',
+        targetId,
+        metadata: metadata ? (metadata as object) : undefined,
+      },
+    });
+  }
+
   async create(
     userId: string,
     organizationId: string,
@@ -64,7 +83,10 @@ export class TasksService {
       },
     });
 
-    // Notify the assignee if someone else assigned this task to them.
+    await this.logActivity(projectId, userId, 'task.created', task.id, {
+      title: task.title,
+    });
+
     if (task.assigneeId && task.assigneeId !== userId) {
       await this.notificationsService.create(
         task.assigneeId,
@@ -128,7 +150,10 @@ export class TasksService {
       include: { assignee: { select: SAFE_USER_SELECT } },
     });
 
-    // Notify newly-assigned person, if the assignee actually changed.
+    await this.logActivity(projectId, userId, 'task.updated', taskId, {
+      fields: Object.keys(dto),
+    });
+
     if (
       dto.assigneeId &&
       dto.assigneeId !== existing.assigneeId &&
@@ -152,7 +177,12 @@ export class TasksService {
     taskId: string,
     dto: MoveTaskDto,
   ) {
-    await this.findOne(userId, organizationId, projectId, taskId);
+    const existing = await this.findOne(
+      userId,
+      organizationId,
+      projectId,
+      taskId,
+    );
 
     await this.prisma.$transaction([
       this.prisma.task.updateMany({
@@ -168,6 +198,13 @@ export class TasksService {
         data: { status: dto.status, position: dto.position },
       }),
     ]);
+
+    if (existing.status !== dto.status) {
+      await this.logActivity(projectId, userId, 'task.status_changed', taskId, {
+        from: existing.status,
+        to: dto.status,
+      });
+    }
 
     return this.findOne(userId, organizationId, projectId, taskId);
   }
@@ -218,7 +255,10 @@ export class TasksService {
       include: { author: { select: SAFE_USER_SELECT } },
     });
 
-    // Notify the task's creator and assignee (if different from the commenter).
+    await this.logActivity(projectId, userId, 'task.commented', taskId, {
+      commentId: comment.id,
+    });
+
     const notifyIds = new Set<string>();
     if (task.creatorId !== userId) notifyIds.add(task.creatorId);
     if (task.assigneeId && task.assigneeId !== userId)
@@ -255,5 +295,19 @@ export class TasksService {
     }
     await this.prisma.comment.delete({ where: { id: commentId } });
     return { success: true };
+  }
+
+  async getActivity(
+    userId: string,
+    organizationId: string,
+    projectId: string,
+    taskId: string,
+  ) {
+    await this.findOne(userId, organizationId, projectId, taskId);
+    return this.prisma.activityLog.findMany({
+      where: { targetType: 'Task', targetId: taskId },
+      orderBy: { createdAt: 'desc' },
+      include: { user: { select: SAFE_USER_SELECT } },
+    });
   }
 }

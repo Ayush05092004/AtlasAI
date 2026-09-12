@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CommentThread } from './comment-thread';
+import { ActivityTimeline } from './activity-timeline';
 
 const STATUS_OPTIONS: Task['status'][] = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE'];
 const PRIORITY_OPTIONS: Task['priority'][] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
@@ -35,13 +36,7 @@ export function TaskDetailModal({ orgId, projectId, taskId, onClose }: TaskDetai
         {isLoading || !task ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : (
-          <TaskDetailForm
-            key={task.id}
-            orgId={orgId}
-            projectId={projectId}
-            task={task}
-            onClose={onClose}
-          />
+          <TaskDetailForm key={task.id} orgId={orgId} projectId={projectId} task={task} onClose={onClose} />
         )}
       </div>
     </div>
@@ -64,6 +59,7 @@ function TaskDetailForm({ orgId, projectId, task, onClose }: TaskDetailFormProps
   const [status, setStatus] = useState<Task['status']>(task.status);
   const [priority, setPriority] = useState<Task['priority']>(task.priority);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [activeTab, setActiveTab] = useState<'comments' | 'activity'>('comments');
 
   const handleSave = () => {
     updateTask.mutate({ taskId: task.id, title, description, status, priority }, { onSuccess: onClose });
@@ -148,8 +144,32 @@ function TaskDetailForm({ orgId, projectId, task, onClose }: TaskDetailFormProps
         </div>
       </div>
 
-      <div className="mt-4">
-        <CommentThread orgId={orgId} projectId={projectId} taskId={task.id} />
+      <div className="mt-4 border-t border-atlas-panel-border pt-4">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('comments')}
+            className={`text-xs font-medium transition-colors ${
+              activeTab === 'comments' ? 'text-atlas-cyan' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Comments
+          </button>
+          <button
+            onClick={() => setActiveTab('activity')}
+            className={`text-xs font-medium transition-colors ${
+              activeTab === 'activity' ? 'text-atlas-cyan' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Activity
+          </button>
+        </div>
+        <div className="mt-3">
+          {activeTab === 'comments' ? (
+            <CommentThread orgId={orgId} projectId={projectId} taskId={task.id} />
+          ) : (
+            <ActivityTimeline orgId={orgId} projectId={projectId} taskId={task.id} />
+          )}
+        </div>
       </div>
 
       {confirmDelete ? (

@@ -156,4 +156,19 @@ export class TasksController {
       commentId,
     );
   }
+
+  @Get(':taskId/activity')
+  getActivity(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Param('projectId') projectId: string,
+    @Param('taskId') taskId: string,
+  ) {
+    return this.tasksService.getActivity(
+      user.userId,
+      organizationId,
+      projectId,
+      taskId,
+    );
+  }
 }
