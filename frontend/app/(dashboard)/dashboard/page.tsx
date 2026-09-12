@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, FolderKanban, Clock, TrendingUp, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
@@ -10,11 +12,22 @@ const fadeUp = {
   animate: { opacity: 1, y: 0 },
 };
 
+function getGreeting() {
+  const hour = new Date().getHours();
+  return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+}
+
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const { data: projects, isLoading } = useProjects();
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional client-mount detection to avoid SSR/client hydration mismatch on time-based content, not state syncing
+    setMounted(true);
+  }, []);
+
+  const greeting = mounted ? getGreeting() : 'Welcome back';
 
   const activeProjects = projects?.filter((p) => p.status === 'ACTIVE').length ?? 0;
   const totalTasks = projects?.reduce((sum, p) => sum + p._count.tasks, 0) ?? 0;
@@ -63,12 +76,12 @@ export default function DashboardPage() {
             <Sparkles className="h-4 w-4" />
             Ask AtlasAI
           </button>
-          
-            <a href="/projects"
+          <Link
+            href="/projects"
             className="rounded-lg border border-atlas-panel-border px-4 py-2 text-sm text-foreground transition-colors hover:bg-white/[0.03]"
           >
             View projects
-          </a>
+          </Link>
         </div>
       </motion.div>
 
@@ -103,17 +116,17 @@ export default function DashboardPage() {
       >
         <div className="flex items-center justify-between border-b border-atlas-panel-border px-5 py-4">
           <h2 className="font-display text-sm font-semibold text-foreground">Your projects</h2>
-          <a href="/projects" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <Link href="/projects" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             View all <ArrowUpRight className="h-3 w-3" />
-          </a>
+          </Link>
         </div>
         {isLoading && <p className="px-5 py-6 text-sm text-muted-foreground">Loading...</p>}
         {!isLoading && projects?.length === 0 && (
           <p className="px-5 py-6 text-sm text-muted-foreground">
             No projects yet.{' '}
-            <a href="/projects" className="text-atlas-cyan hover:underline">
+            <Link href="/projects" className="text-atlas-cyan hover:underline">
               Create one
-            </a>
+            </Link>
             .
           </p>
         )}
