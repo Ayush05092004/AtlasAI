@@ -172,3 +172,16 @@ export class TasksController {
     );
   }
 }
+
+@Controller('organizations/:organizationId/my-tasks')
+export class MyTasksController {
+  constructor(private tasksService: TasksService) {}
+
+  @Get()
+  getMyTasks(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+  ) {
+    return this.tasksService.getMyTasks(user.userId, organizationId);
+  }
+}

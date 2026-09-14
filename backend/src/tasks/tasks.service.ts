@@ -310,4 +310,20 @@ export class TasksService {
       include: { user: { select: SAFE_USER_SELECT } },
     });
   }
+
+  async getMyTasks(userId: string, organizationId: string) {
+    await this.orgService.assertMembership(userId, organizationId);
+
+    return this.prisma.task.findMany({
+      where: {
+        project: { organizationId },
+        OR: [{ assigneeId: userId }, { creatorId: userId, assigneeId: null }],
+      },
+      orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
+      include: {
+        assignee: { select: SAFE_USER_SELECT },
+        project: { select: { id: true, name: true, key: true, color: true } },
+      },
+    });
+  }
 }
