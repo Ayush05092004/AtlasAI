@@ -15,6 +15,18 @@ interface RawGeneratedTask {
   priority?: unknown;
 }
 
+interface QuickAddResult {
+  title: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  dueDate: string | null;
+}
+
+interface RawQuickAddResult {
+  title?: unknown;
+  priority?: unknown;
+  dueDate?: unknown;
+}
+
 @Injectable()
 export class AiAssistantService {
   constructor(
@@ -87,6 +99,40 @@ Write only the summary paragraph, no headers, no markdown formatting.`;
     return this.gemini.generateText(prompt);
   }
 
+  /**
+   * Parses one line of freeform text (e.g. "Fix login bug urgent tomorrow")
+   * into a structured task - title, priority, and due date if mentioned.
+   * Powers the quick-add bar so users never need to open a form.
+   */
+  async quickAddParse(
+    userId: string,
+    organizationId: string,
+    text: string,
+  ): Promise<QuickAddResult> {
+    await this.orgService.assertMembership(userId, organizationId);
+
+    if (!text || text.trim().length < 2) {
+      throw new BadRequestException('Please type something to add.');
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    const prompt = `You are a task quick-entry parser. Extract a single task from this text.
+
+Text: "${text}"
+Today's date is ${today}.
+
+Respond with ONLY a JSON object, no other text, no markdown code fences, with exactly these fields:
+- "title": the core task description, with priority/date words removed (max 150 characters)
+- "priority": one of "LOW", "MEDIUM", "HIGH", "URGENT" - infer from words like "urgent", "asap", "whenever", "low priority". Default to "MEDIUM" if unclear.
+- "dueDate": an ISO date string "YYYY-MM-DD" if a date/day is mentioned (e.g. "tomorrow", "friday", "next week"), otherwise null.
+
+Example: {"title": "Fix login bug", "priority": "URGENT", "dueDate": "2026-09-13"}`;
+
+    const raw = await this.gemini.generateText(prompt);
+    return this.parseQuickAdd(raw);
+  }
+
   private parseTaskList(raw: string): GeneratedTask[] {
     const cleaned = raw
       .trim()
@@ -129,5 +175,49 @@ Write only the summary paragraph, no headers, no markdown formatting.`;
           priority,
         };
       });
+  }
+
+  private parseQuickAdd(raw: string): QuickAddResult {
+    const cleaned = raw
+      .trim()
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '');
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      throw new BadRequestException(
+        'Could not understand that. Please try rephrasing.',
+      );
+    }
+
+    const item = parsed as RawQuickAddResult;
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
+
+    if (typeof item?.title !== 'string' || item.title.trim().length === 0) {
+      throw new BadRequestException(
+        'Could not extract a task title. Please try rephrasing.',
+      );
+    }
+
+    const priority =
+      typeof item.priority === 'string' &&
+      validPriorities.includes(item.priority)
+        ? (item.priority as QuickAddResult['priority'])
+        : 'MEDIUM';
+
+    const dueDate =
+      typeof item.dueDate === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/.test(item.dueDate)
+        ? item.dueDate
+        : null;
+
+    return {
+      title: item.title.trim().slice(0, 200),
+      priority,
+      dueDate,
+    };
   }
 }

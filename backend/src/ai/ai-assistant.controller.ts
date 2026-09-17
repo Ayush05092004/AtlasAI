@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, Param } from '@nestjs/common';
 import { AiAssistantService } from './ai-assistant.service';
-import { GenerateTasksDto } from './dto/ai.dto';
+import { GenerateTasksDto, QuickAddDto } from './dto/ai.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('organizations/:organizationId/ai')
@@ -33,5 +33,18 @@ export class AiAssistantController {
       organizationId,
       projectId,
     );
+  }
+
+  @Post('quick-add')
+  quickAdd(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Body() dto: QuickAddDto,
+  ): Promise<{
+    title: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate: string | null;
+  }> {
+    return this.aiService.quickAddParse(user.userId, organizationId, dto.text);
   }
 }

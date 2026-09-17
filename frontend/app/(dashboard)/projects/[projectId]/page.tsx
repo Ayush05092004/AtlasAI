@@ -6,6 +6,7 @@ import { Trash2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { KanbanBoard } from '@/components/tasks/kanban-board';
 import { CreateTaskButton } from '@/components/tasks/create-task-button';
+import { QuickAddBar } from '@/components/tasks/quick-add-bar';
 import { Button } from '@/components/ui/button';
 import { useActiveOrgId, useProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 
@@ -98,6 +99,8 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+      <QuickAddBar orgId={orgId} projectId={project.id} />
 
       <KanbanBoard orgId={orgId} projectId={project.id} />
     </div>
