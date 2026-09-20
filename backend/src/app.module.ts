@@ -11,6 +11,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { PresenceModule } from './presence/presence.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AiModule } from './ai/ai.module';
     TasksModule,
     NotificationsModule,
     AiModule,
+    PresenceModule,
   ],
   controllers: [AppController, UsersController],
   providers: [

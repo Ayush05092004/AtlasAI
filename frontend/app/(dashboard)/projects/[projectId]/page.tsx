@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { KanbanBoard } from '@/components/tasks/kanban-board';
 import { CreateTaskButton } from '@/components/tasks/create-task-button';
 import { QuickAddBar } from '@/components/tasks/quick-add-bar';
+import { PresenceAvatars } from '@/components/tasks/presence-avatars';
 import { Button } from '@/components/ui/button';
 import { useActiveOrgId, useProject, useUpdateProject, useDeleteProject } from '@/hooks/use-projects';
 
@@ -54,6 +55,9 @@ export default function ProjectDetailPage() {
           {project.description && (
             <p className="mt-1 text-sm text-muted-foreground">{project.description}</p>
           )}
+          <div className="mt-2">
+            <PresenceAvatars projectId={project.id} />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
