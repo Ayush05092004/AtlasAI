@@ -71,6 +71,7 @@ model User {
   notifications   Notification[]
   activityEntries ActivityLog[]
   uploadedFiles   Attachment[]
+  messages        Message[]
 
   @@map("users")
 }
@@ -99,6 +100,7 @@ model Organization {
   members  OrganizationMember[]
   invites  OrganizationInvite[]
   projects Project[]
+  messages Message[]
 
   @@map("organizations")
 }
@@ -272,4 +274,22 @@ model Attachment {
   createdAt  DateTime @default(now())
 
   @@map("attachments")
+}
+
+// ────────────────────────────────────────────────────────────
+// v2.0 — Real-time Team Chat
+// ────────────────────────────────────────────────────────────
+
+model Message {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User         @relation(fields: [authorId], references: [id])
+  body           String
+  createdAt      DateTime     @default(now())
+  editedAt       DateTime?
+
+  @@index([organizationId, createdAt])
+  @@map("messages")
 }
