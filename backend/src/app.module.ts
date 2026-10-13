@@ -13,6 +13,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { PresenceModule } from './presence/presence.module';
 import { ChatModule } from './chat/chat.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ChatModule } from './chat/chat.module';
     AiModule,
     PresenceModule,
     ChatModule,
+    WebhooksModule,
   ],
   controllers: [AppController, UsersController],
   providers: [

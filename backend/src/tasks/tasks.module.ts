@@ -4,9 +4,10 @@ import { TasksController, MyTasksController } from './tasks.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsModule } from '../organizations/organizations.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
-  imports: [OrganizationsModule, NotificationsModule],
+  imports: [OrganizationsModule, NotificationsModule, WebhooksModule],
   controllers: [TasksController, MyTasksController],
   providers: [TasksService, PrismaService],
 })

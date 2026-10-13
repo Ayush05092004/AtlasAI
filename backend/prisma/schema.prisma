@@ -101,6 +101,7 @@ model Organization {
   invites  OrganizationInvite[]
   projects Project[]
   messages Message[]
+  webhooks Webhook[]
 
   @@map("organizations")
 }
@@ -182,6 +183,8 @@ model Task {
 
   @@unique([projectId, number])
   @@index([projectId, status])
+  @@index([assigneeId])
+  @@index([creatorId])
   @@map("tasks")
 }
 
@@ -277,7 +280,7 @@ model Attachment {
 }
 
 // ────────────────────────────────────────────────────────────
-// v2.0 — Real-time Team Chat
+// v2.0 — Real-time Team Chat & Integrations
 // ────────────────────────────────────────────────────────────
 
 model Message {
@@ -292,4 +295,18 @@ model Message {
 
   @@index([organizationId, createdAt])
   @@map("messages")
+}
+
+model Webhook {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  url            String
+  event          String
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId, event])
+  @@map("webhooks")
 }

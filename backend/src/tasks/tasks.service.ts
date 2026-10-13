@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WebhooksService } from '../webhooks/webhooks.service';
 import { CreateTaskDto, UpdateTaskDto, MoveTaskDto } from './dto/task.dto';
 import { CreateCommentDto } from './dto/comment.dto';
 
@@ -23,6 +24,7 @@ export class TasksService {
     private prisma: PrismaService,
     private orgService: OrganizationsService,
     private notificationsService: NotificationsService,
+    private webhooksService: WebhooksService,
   ) {}
 
   private async assertProjectAccess(
@@ -57,6 +59,17 @@ export class TasksService {
     });
   }
 
+  // Fire-and-forget: a slow or failing webhook must never slow down or break the user's request.
+  private fireWebhook(
+    organizationId: string,
+    event: string,
+    payload: Record<string, unknown>,
+  ) {
+    void this.webhooksService
+      .trigger(organizationId, event, payload)
+      .catch(() => undefined);
+  }
+
   async create(
     userId: string,
     organizationId: string,
@@ -85,6 +98,15 @@ export class TasksService {
 
     await this.logActivity(projectId, userId, 'task.created', task.id, {
       title: task.title,
+    });
+
+    this.fireWebhook(organizationId, 'task.created', {
+      taskId: task.id,
+      title: task.title,
+      priority: task.priority,
+      project: project.name,
+      key: `${project.key}-${task.number}`,
+      createdBy: `${task.creator.firstName} ${task.creator.lastName}`,
     });
 
     if (task.assigneeId && task.assigneeId !== userId) {
@@ -154,6 +176,15 @@ export class TasksService {
       fields: Object.keys(dto),
     });
 
+    if (dto.status && dto.status !== existing.status) {
+      this.fireWebhook(organizationId, 'task.status_changed', {
+        taskId,
+        title: updated.title,
+        from: existing.status,
+        to: dto.status,
+      });
+    }
+
     if (
       dto.assigneeId &&
       dto.assigneeId !== existing.assigneeId &&
@@ -201,6 +232,13 @@ export class TasksService {
 
     if (existing.status !== dto.status) {
       await this.logActivity(projectId, userId, 'task.status_changed', taskId, {
+        from: existing.status,
+        to: dto.status,
+      });
+
+      this.fireWebhook(organizationId, 'task.status_changed', {
+        taskId,
+        title: existing.title,
         from: existing.status,
         to: dto.status,
       });
@@ -257,6 +295,13 @@ export class TasksService {
 
     await this.logActivity(projectId, userId, 'task.commented', taskId, {
       commentId: comment.id,
+    });
+
+    this.fireWebhook(organizationId, 'task.commented', {
+      taskId,
+      title: task.title,
+      author: `${comment.author.firstName} ${comment.author.lastName}`,
+      comment: dto.body.slice(0, 200),
     });
 
     const notifyIds = new Set<string>();

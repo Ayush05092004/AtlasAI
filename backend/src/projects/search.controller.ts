@@ -11,7 +11,26 @@ export class SearchController {
     @CurrentUser() user: { userId: string; email: string },
     @Param('organizationId') organizationId: string,
     @Query('q') query: string,
+    @Query('assigneeId') assigneeId?: string,
+    @Query('priority') priority?: string,
+    @Query('status') status?: string,
+    @Query('dueBefore') dueBefore?: string,
+    @Query('dueAfter') dueAfter?: string,
   ) {
-    return this.searchService.search(user.userId, organizationId, query);
+    return this.searchService.search(user.userId, organizationId, query, {
+      assigneeId,
+      priority,
+      status,
+      dueBefore,
+      dueAfter,
+    });
+  }
+
+  @Get('assignable-users')
+  getAssignableUsers(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+  ) {
+    return this.searchService.getAssignableUsers(user.userId, organizationId);
   }
 }

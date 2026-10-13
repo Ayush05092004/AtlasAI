@@ -13,6 +13,8 @@ import {
   MessageSquare,
   Settings,
   Users,
+  Search,
+  Webhook,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { NotificationBell } from './notification-bell';
@@ -22,10 +24,12 @@ const NAV_ITEMS = [
   { href: '/projects', label: 'Projects', icon: FolderKanban },
   { href: '/team', label: 'Team', icon: Users },
   { href: '/tasks', label: 'My Tasks', icon: CheckSquare },
+  { href: '/search', label: 'Search', icon: Search },
   { href: '/calendar', label: 'Calendar', icon: Calendar },
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/assistant', label: 'AI Assistant', icon: Sparkles },
   { href: '/chat', label: 'Team Chat', icon: MessageSquare },
+  { href: '/integrations', label: 'Integrations', icon: Webhook },
 ];
 
 export function Sidebar() {
