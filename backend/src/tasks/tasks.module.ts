@@ -10,5 +10,6 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
   imports: [OrganizationsModule, NotificationsModule, WebhooksModule],
   controllers: [TasksController, MyTasksController],
   providers: [TasksService, PrismaService],
+  exports: [TasksService],
 })
 export class TasksModule {}

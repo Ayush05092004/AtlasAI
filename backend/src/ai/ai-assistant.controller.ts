@@ -1,11 +1,15 @@
 import { Controller, Post, Get, Body, Param } from '@nestjs/common';
 import { AiAssistantService } from './ai-assistant.service';
-import { GenerateTasksDto, QuickAddDto } from './dto/ai.dto';
+import { AiAgentService, AgentReply } from './ai-agent.service';
+import { GenerateTasksDto, QuickAddDto, AgentChatDto } from './dto/ai.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('organizations/:organizationId/ai')
 export class AiAssistantController {
-  constructor(private aiService: AiAssistantService) {}
+  constructor(
+    private aiService: AiAssistantService,
+    private agentService: AiAgentService,
+  ) {}
 
   @Post('generate-tasks')
   generateTasks(
@@ -46,5 +50,19 @@ export class AiAssistantController {
     dueDate: string | null;
   }> {
     return this.aiService.quickAddParse(user.userId, organizationId, dto.text);
+  }
+
+  @Post('chat')
+  chat(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Body() dto: AgentChatDto,
+  ): Promise<AgentReply> {
+    return this.agentService.chat(
+      user.userId,
+      organizationId,
+      dto.message,
+      dto.history ?? [],
+    );
   }
 }
