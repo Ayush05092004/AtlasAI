@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Trash2, ChevronLeft } from 'lucide-react';
+import { Trash2, ChevronLeft, LayoutGrid, List } from 'lucide-react';
 import Link from 'next/link';
 import { KanbanBoard } from '@/components/tasks/kanban-board';
+import { TaskTable } from '@/components/tasks/task-table';
 import { CreateTaskButton } from '@/components/tasks/create-task-button';
 import { QuickAddBar } from '@/components/tasks/quick-add-bar';
 import { PresenceAvatars } from '@/components/tasks/presence-avatars';
@@ -21,6 +22,7 @@ export default function ProjectDetailPage() {
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [view, setView] = useState<'board' | 'table'>('board');
 
   if (!orgId || isLoading || !project) {
     return <p className="px-8 py-10 text-sm text-muted-foreground">Loading...</p>;
@@ -106,7 +108,26 @@ export default function ProjectDetailPage() {
 
       <QuickAddBar orgId={orgId} projectId={project.id} />
 
-      <KanbanBoard orgId={orgId} projectId={project.id} />
+      <div className="mb-4 flex w-fit rounded-lg border border-atlas-panel-border p-0.5">
+        {(['board', 'table'] as const).map((option) => (
+          <button
+            key={option}
+            onClick={() => setView(option)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs transition-colors ${
+              view === option ? 'bg-atlas-violet/20 text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {option === 'board' ? <LayoutGrid className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+            {option === 'board' ? 'Board' : 'Table'}
+          </button>
+        ))}
+      </div>
+
+      {view === 'board' ? (
+        <KanbanBoard orgId={orgId} projectId={project.id} />
+      ) : (
+        <TaskTable orgId={orgId} projectId={project.id} projectKey={project.key} />
+      )}
     </div>
   );
 }

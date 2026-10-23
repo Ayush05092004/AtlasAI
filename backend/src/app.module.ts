@@ -5,7 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { UsersController } from './users/users.controller';
+import { UsersModule } from './users/users.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { ProjectsModule } from './projects/projects.module';
 import { TasksModule } from './tasks/tasks.module';
@@ -19,6 +19,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AuthModule,
+    UsersModule,
     OrganizationsModule,
     ProjectsModule,
     TasksModule,
@@ -28,7 +29,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     ChatModule,
     WebhooksModule,
   ],
-  controllers: [AppController, UsersController],
+  controllers: [AppController],
   providers: [
     AppService,
     {

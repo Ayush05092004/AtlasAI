@@ -7,9 +7,10 @@ import { SearchService } from './search.service';
 import { SearchController } from './search.controller';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsModule } from '../organizations/organizations.module';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
-  imports: [OrganizationsModule],
+  imports: [OrganizationsModule, WebhooksModule],
   controllers: [ProjectsController, AnalyticsController, SearchController],
   providers: [ProjectsService, AnalyticsService, SearchService, PrismaService],
 })
