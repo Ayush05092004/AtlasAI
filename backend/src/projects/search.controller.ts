@@ -33,4 +33,19 @@ export class SearchController {
   ) {
     return this.searchService.getAssignableUsers(user.userId, organizationId);
   }
+
+  @Get('calendar')
+  getCalendar(
+    @CurrentUser() user: { userId: string; email: string },
+    @Param('organizationId') organizationId: string,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.searchService.getCalendarTasks(
+      user.userId,
+      organizationId,
+      from,
+      to,
+    );
+  }
 }

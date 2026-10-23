@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrganizationsService } from '../organizations/organizations.service';
 
@@ -104,5 +104,42 @@ export class SearchService {
       },
     });
     return members.map((m) => m.user);
+  }
+
+  /** Every task in the organization with a due date inside [from, to] - powers the calendar. */
+  async getCalendarTasks(
+    userId: string,
+    organizationId: string,
+    from: string,
+    to: string,
+  ) {
+    await this.orgService.assertMembership(userId, organizationId);
+
+    const start = new Date(from);
+    const end = new Date(to);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      throw new BadRequestException(
+        'Please provide valid "from" and "to" dates.',
+      );
+    }
+
+    return this.prisma.task.findMany({
+      where: {
+        project: { organizationId },
+        dueDate: { gte: start, lte: end },
+      },
+      select: {
+        id: true,
+        number: true,
+        title: true,
+        status: true,
+        priority: true,
+        dueDate: true,
+        assignee: { select: { id: true, firstName: true, lastName: true } },
+        project: { select: { id: true, name: true, key: true } },
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 500,
+    });
   }
 }
