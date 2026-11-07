@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAcceptInvite } from '@/hooks/use-team';
 
-export default function AcceptInvitePage() {
+function AcceptInviteContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -22,9 +22,10 @@ export default function AcceptInvitePage() {
 
     acceptInvite.mutate(token, {
       onSuccess: () => setStatus('success'),
-      onError: (err: AxiosError<{ message?: string }>) => {
+      onError: (err: Error) => {
         setStatus('error');
-        setErrorMessage(err.response?.data?.message ?? 'This invite could not be accepted.');
+        const apiMessage = isAxiosError<{ message?: string }>(err) ? err.response?.data?.message : undefined;
+        setErrorMessage(apiMessage ?? 'This invite could not be accepted.');
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run when token/accessToken actually change, not on every acceptInvite identity change
@@ -94,5 +95,20 @@ export default function AcceptInvitePage() {
         )}
       </div>
     </div>
+  );
+}
+
+// useSearchParams() must sit inside a Suspense boundary or the production build fails.
+export default function AcceptInvitePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-atlas-ink">
+          <Loader2 className="h-8 w-8 animate-spin text-atlas-cyan" />
+        </div>
+      }
+    >
+      <AcceptInviteContent />
+    </Suspense>
   );
 }

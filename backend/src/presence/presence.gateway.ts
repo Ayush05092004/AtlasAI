@@ -22,7 +22,10 @@ interface JoinProjectPayload {
 }
 
 @WebSocketGateway({
-  cors: { origin: 'http://localhost:3000', credentials: true },
+  cors: {
+    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    credentials: true,
+  },
 })
 export class PresenceGateway
   implements OnGatewayConnection, OnGatewayDisconnect
@@ -32,8 +35,6 @@ export class PresenceGateway
 
   private readonly logger = new Logger(PresenceGateway.name);
 
-  // Maps each socket connection to which project room it's in and who they are,
-  // so we know what to clean up when they disconnect.
   private socketInfo = new Map<
     string,
     { projectId: string; user: ViewerInfo }
@@ -80,7 +81,6 @@ export class PresenceGateway
       .filter((info) => info.projectId === projectId)
       .map((info) => info.user);
 
-    // De-duplicate by userId - the same person could have multiple tabs/sockets open.
     const uniqueViewers = Array.from(
       new Map(viewers.map((v) => [v.userId, v])).values(),
     );
