@@ -23,14 +23,18 @@ export class GeminiService {
   private readonly modelName: string;
 
   constructor(private config: ConfigService) {
-    const apiKey = this.config.get<string>('GEMINI_API_KEY');
+    const apiKey = this.config.get<string>('GEMINI_API_KEY')?.trim();
     if (!apiKey) {
       this.logger.warn(
         'GEMINI_API_KEY is not set - AI features will fail until configured',
       );
     }
     this.client = new GoogleGenerativeAI(apiKey ?? '');
-    this.modelName = this.config.get<string>('GEMINI_MODEL') ?? DEFAULT_MODEL;
+    this.modelName =
+      this.config.get<string>('GEMINI_MODEL')?.trim() || DEFAULT_MODEL;
+    this.logger.log(
+      `Gemini model: ${this.modelName}, key configured: ${apiKey ? 'yes' : 'NO'}`,
+    );
   }
 
   /** Returns a model instance; the agent uses this to attach tools and a system prompt. */
@@ -41,7 +45,8 @@ export class GeminiService {
   /**
    * Runs a Gemini call. Retries temporary 503 "high demand" errors, and turns
    * a 429 (quota used up) into a clear message instead of retrying - retrying
-   * a quota error only burns more quota.
+   * a quota error only burns more quota. Any other failure reports Google's
+   * status code so the cause is visible without digging through server logs.
    */
   async withRetry<T>(operation: () => Promise<T>): Promise<T> {
     let lastError: unknown;
@@ -55,7 +60,6 @@ export class GeminiService {
 
         if (message.includes('[429')) {
           this.logger.warn(`Gemini quota exceeded: ${message.slice(0, 400)}`);
-          // Best-effort: Google's quota ids mention "PerDay" for daily limits.
           const isDaily = message.includes('PerDay');
           throw new HttpException(
             isDaily
@@ -78,12 +82,18 @@ export class GeminiService {
       }
     }
 
+    const finalMessage =
+      lastError instanceof Error ? lastError.message : String(lastError);
     this.logger.error(
-      'Gemini API call failed after retries',
-      lastError instanceof Error ? lastError.stack : String(lastError),
+      `Gemini API call failed after retries: ${finalMessage.slice(0, 500)}`,
     );
+
+    const statusMatch = finalMessage.match(/\[(\d{3})\s/);
+    const upstream = statusMatch
+      ? `Google returned ${statusMatch[1]}`
+      : 'no response from Google';
     throw new InternalServerErrorException(
-      'The AI is currently busy. Please try again in a moment.',
+      `The AI request failed (${upstream}). Please try again in a moment.`,
     );
   }
 
